@@ -26,28 +26,6 @@ def getvalue(data, key, isdict, default=None):
         return getattr(data, key, default)
 
 
-def getxmlns(arg, default):
-    if arg == '':
-        return arg
-    return arg or default
-
-
-def gettag(tag, xmlns):
-    if xmlns:
-        return str(QName(xmlns, tag))
-    return tag
-
-
-def getnsmap(xmlnsset, xmlnsmap, rootxmlns):
-    nsmap = {}
-    for xmlns in xmlnsset:
-        if xmlns == rootxmlns:
-            nsmap[None] = xmlns
-        elif xmlns in xmlnsmap:
-            nsmap[xmlnsmap[xmlns]] = xmlns
-    return nsmap
-
-
 def _setfields(fields, attrs):
     from .fields.declarations import FieldBase, TextField
 
@@ -65,17 +43,6 @@ def _setfields(fields, attrs):
             else:
                 hastext = True
         fields[k] = v
-
-
-NILTAG = gettag('nil', 'http://www.w3.org/2001/XMLSchema-instance')
-
-
-def isnil(element):
-    return element.text is None and NILTAG in element.attrib and element.attrib[NILTAG] == 'true'
-
-
-def setnil(element):
-    element.attrib[NILTAG] = 'true'
 
 
 def _to_dict(model_class, data_type, data, ordered):

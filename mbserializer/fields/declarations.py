@@ -3,7 +3,8 @@
 __author__ = 'Junki Ishida'
 
 import pytz
-from .. import converters, utils
+from .. import converters
+from .._xml import _getxmlns
 from .._compat import str_types, iteritems
 
 
@@ -91,7 +92,7 @@ class ElementField(MemberFieldBase):
 
 class DelegateElement(ElementField):
     def __init__(self, model_class, xmlns=None, ignorable=False, nullable=False, **options):
-        super(DelegateElement, self).__init__(model_class.__tag__, utils.getxmlns(xmlns, model_class.__xmlns__),
+        super(DelegateElement, self).__init__(model_class.__tag__, _getxmlns(xmlns, model_class.__xmlns__),
                                               ignorable, nullable, **options)
         self.model_class = model_class
         self._isdelegate = True
@@ -112,7 +113,7 @@ class ListField(ElementField):
 class DelegateList(ListField):
     def __init__(self, model_class, key=None, xmlns=None, elem_xmlns=None,
                  ignorable=False, nullable=False, nested=False, **options):
-        super(DelegateList, self).__init__(model_class.__tag__, key, utils.getxmlns(xmlns, model_class.__xmlns__),
+        super(DelegateList, self).__init__(model_class.__tag__, key, _getxmlns(xmlns, model_class.__xmlns__),
                                            elem_xmlns, ignorable, nullable, nested, **options)
         self.model_class = model_class
         self._islistdelegate = True

@@ -11,9 +11,12 @@ import re
 
 try:
     from lxml import etree
+    from lxml.etree import QName
 
     lxml_loaded = True
 except ImportError:
+    from xml.etree.ElementTree import QName
+
     lxml_loaded = False
 
 try:
@@ -31,6 +34,39 @@ if PY2:
 [ \\t\\r\\n]encoding[ \\t\\r\\n]?=[ \\t\\r\\n]?("([a-zA-Z][a-zA-Z0-9._\-]*)"|'([a-zA-Z][a-zA-Z0-9._\-]*)')
 ([ \\t\\r\\n]standalone[ \\t\\r\\n]?=[ \\t\\r\\n]?("(yes|no)"|'(yes|no)'))?
 [ \\t\\r\\n]?\?>""", re.VERBOSE)
+
+def _getxmlns(arg, default):
+    if arg == '':
+        return arg
+    return arg or default
+
+
+def _gettag(tag, xmlns):
+    if xmlns:
+        return str(QName(xmlns, tag))
+    return tag
+
+
+def _getnsmap(xmlnsset, xmlnsmap, rootxmlns):
+    nsmap = {}
+    for xmlns in xmlnsset:
+        if xmlns == rootxmlns:
+            nsmap[None] = xmlns
+        elif xmlns in xmlnsmap:
+            nsmap[xmlnsmap[xmlns]] = xmlns
+    return nsmap
+
+
+NILTAG = _gettag('nil', 'http://www.w3.org/2001/XMLSchema-instance')
+
+
+def _isnil(element):
+    return element.text is None and NILTAG in element.attrib and element.attrib[NILTAG] == 'true'
+
+
+def _setnil(element):
+    element.attrib[NILTAG] = 'true'
+
 
 __default_xmlnsmap = {
     'http://www.w3.org/XML/1998/namespace': 'xml',
@@ -67,34 +103,34 @@ def _build_element(model_class, data_type, data, root, xmlns):
             key = f.get_key(k)
             if f._isattr:
                 if f.xmlns:
-                    key = utils.gettag(key, f.xmlns)
+                    key = _gettag(key, f.xmlns)
                 root.attrib[key] = f._dump(src, data_type)
             else:
                 hasniltag = f._nullable and src is None
                 if f._islist:
                     if f.nested:
-                        fxmlns = utils.getxmlns(f.nested_xmlns, xmlns)
-                        tag = utils.gettag(key, fxmlns)
+                        fxmlns = _getxmlns(f.nested_xmlns, xmlns)
+                        tag = _gettag(key, fxmlns)
                         listtoot = etree.SubElement(root, tag)
                         if hasniltag:
-                            utils.setnil(listtoot)
+                            _setnil(listtoot)
                             continue
                     else:
                         listtoot = root
-                    exmlns = utils.getxmlns(f.xmlns, xmlns)
+                    exmlns = _getxmlns(f.xmlns, xmlns)
                     for v in src or ():
-                        tag = utils.gettag(f.tag, exmlns)
+                        tag = _gettag(f.tag, exmlns)
                         element = etree.SubElement(listtoot, tag)
                         if f._islistdelegate:
                             _build_element(f.model_class, data_type, v, element, exmlns)
                         else:
                             element.text = f._dump(v, data_type)
                 else:
-                    fxmlns = utils.getxmlns(f.xmlns, xmlns)
-                    tag = utils.gettag(key, fxmlns)
+                    fxmlns = _getxmlns(f.xmlns, xmlns)
+                    tag = _gettag(key, fxmlns)
                     element = etree.SubElement(root, tag)
                     if hasniltag:
-                        utils.setnil(element)
+                        _setnil(element)
                     else:
                         if f._isdelegate:
                             _build_element(f.model_class, data_type, src, element, fxmlns)
@@ -104,13 +140,13 @@ def _build_element(model_class, data_type, data, root, xmlns):
 
 def dump_xml_bytes(model_class, data_type, data, **options):
     xmlns = model_class.__xmlns__
-    tag = utils.gettag(model_class.__tag__, xmlns)
-    nsmap = utils.getnsmap((model_class.__model__ if model_class._islist else model_class)
+    tag = _gettag(model_class.__tag__, xmlns)
+    nsmap = _getnsmap((model_class.__model__ if model_class._islist else model_class)
                            ._getxmlnsset(), _xmlnsmap, xmlns)
     root = etree.Element(tag, nsmap=nsmap)
     if model_class._islist:
         elem_xmlns = model_class.__model__.__xmlns__
-        tag = utils.gettag(model_class.__model__.__tag__, elem_xmlns)
+        tag = _gettag(model_class.__model__.__tag__, elem_xmlns)
         for d in data:
             subroot = etree.SubElement(root, tag)
             _build_element(model_class, data_type, d, subroot, elem_xmlns)
@@ -134,7 +170,7 @@ def _parse_xml(model_class, data_type, data, xmlns):
     entity = Entity()
     if isinstance(data, str_types):
         data = ElementTree.fromstring(data)
-    tag = utils.gettag(model_class.__tag__, xmlns)
+    tag = _gettag(model_class.__tag__, xmlns)
     if data.tag != tag:
         raise FormatError()
     for k, f in iteritems(model_class._fields):
@@ -143,14 +179,14 @@ def _parse_xml(model_class, data_type, data, xmlns):
             value = data.text
         elif f._ismember:
             if f._isattr:
-                key = utils.gettag(key, f.xmlns)
+                key = _gettag(key, f.xmlns)
                 if not key in data.keys():
                     raise FormatError()
                 value = data.attrib[key]
             else:
                 if f._islist and not f.nested:
-                    fxmlns = utils.getxmlns(f.xmlns, xmlns)
-                    tag = utils.gettag(f.tag, fxmlns)
+                    fxmlns = _getxmlns(f.xmlns, xmlns)
+                    tag = _gettag(f.tag, fxmlns)
                     value = []
                     for e in data:
                         if e.tag == tag:
@@ -158,8 +194,8 @@ def _parse_xml(model_class, data_type, data, xmlns):
                                 if f._islistdelegate else f._parse(e.text, data_type)
                             value.append(v)
                 else:
-                    fxmlns = utils.getxmlns(f.nested_xmlns if f._islist else f.xmlns, xmlns)
-                    tag = utils.gettag(key, fxmlns)
+                    fxmlns = _getxmlns(f.nested_xmlns if f._islist else f.xmlns, xmlns)
+                    tag = _gettag(key, fxmlns)
                     element = None
                     for e in data:
                         if e.tag == tag:
@@ -170,13 +206,13 @@ def _parse_xml(model_class, data_type, data, xmlns):
                             entity[k] = NotExist
                             continue
                         raise FormatError()
-                    if f._nullable and utils.isnil(element):
+                    if f._nullable and _isnil(element):
                         value = None
                     else:
                         if f._islist:
                             value = []
-                            exmlns = utils.getxmlns(f.xmlns, xmlns)
-                            tag = utils.gettag(f.tag, exmlns)
+                            exmlns = _getxmlns(f.xmlns, xmlns)
+                            tag = _gettag(f.tag, exmlns)
                             for e in element:
                                 if e.tag == tag:
                                     v = _parse_xml(f.model_class, data_type, e, exmlns) \
@@ -209,7 +245,7 @@ def load_xml(model_class, data_type, data, **options):
         raise_with_inner(ParseError, e)
     xmlns = model_class.__xmlns__
     if model_class._islist:
-        tag = utils.gettag(model_class.__tag__, xmlns)
+        tag = _gettag(model_class.__tag__, xmlns)
         elem_xmlns = model_class.__model__.__xmlns__
         if data.tag != tag:
             raise FormatError()
