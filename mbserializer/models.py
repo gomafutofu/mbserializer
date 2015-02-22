@@ -2,8 +2,8 @@
 
 __author__ = 'Junki Ishida'
 
-from . import utils
-from ._compat import with_metaclass, OrderedDict
+from .exceptions import FormatError
+from ._compat import iteritems, with_metaclass, OrderedDict
 
 
 class ModelTypeBase(type):
@@ -19,6 +19,24 @@ class ModelTypeBase(type):
 
             __model_class._serializer = Serializer(__model_class)
         return __model_class
+
+
+def _setfields(fields, attrs):
+    from .fields.declarations import FieldBase, TextField
+
+    _attrs = []
+    hastext = False
+    for k, v in iteritems(attrs):
+        if isinstance(v, FieldBase):
+            _attrs.append((k, v,))
+        elif isinstance(v, type) and issubclass(v, FieldBase):
+            _attrs.append((k, v(),))
+    for k, v in sorted(_attrs, key=lambda a: a[1].index):
+        if isinstance(v, TextField):
+            if hastext:
+                raise FormatError()
+            hastext = True
+        fields[k] = v
 
 
 class ModelType(ModelTypeBase):
@@ -45,7 +63,7 @@ class ModelType(ModelTypeBase):
         for base in bases:
             if isinstance(base, ModelType):
                 __fields.update(base._fields)
-        utils._setfields(__fields, attrs)
+        _setfields(__fields, attrs)
         attrs['_fields'] = __fields
         attrs['_getxmlnsset'] = classmethod(_getxmlnsset)
         return super(ModelType, cls).__new__(cls, name, bases, attrs)

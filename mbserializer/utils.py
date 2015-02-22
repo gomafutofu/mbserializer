@@ -15,34 +15,13 @@ except ImportError:
 def haskey(data, key, isdict):
     if isdict:
         return key in data
-    else:
-        return hasattr(data, key)
+    return hasattr(data, key)
 
 
 def getvalue(data, key, isdict, default=None):
     if isdict:
         return data.get(key, default)
-    else:
-        return getattr(data, key, default)
-
-
-def _setfields(fields, attrs):
-    from .fields.declarations import FieldBase, TextField
-
-    _attrs = []
-    hastext = False
-    for k, v in iteritems(attrs):
-        if isinstance(v, FieldBase):
-            _attrs.append((k, v,))
-        elif isinstance(v, type) and issubclass(v, FieldBase):
-            _attrs.append((k, v(),))
-    for k, v in sorted(_attrs, key=lambda a: a[1].index):
-        if isinstance(v, TextField):
-            if hastext:
-                raise FormatError()
-            else:
-                hastext = True
-        fields[k] = v
+    return getattr(data, key, default)
 
 
 def _to_dict(model_class, data_type, data, ordered):
