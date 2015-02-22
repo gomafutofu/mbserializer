@@ -35,6 +35,7 @@ if PY2:
 ([ \\t\\r\\n]standalone[ \\t\\r\\n]?=[ \\t\\r\\n]?("(yes|no)"|'(yes|no)'))?
 [ \\t\\r\\n]?\?>""", re.VERBOSE)
 
+
 def _getxmlns(arg, default):
     if arg == '':
         return arg
@@ -45,16 +46,6 @@ def _gettag(tag, xmlns):
     if xmlns:
         return str(QName(xmlns, tag))
     return tag
-
-
-def _getnsmap(xmlnsset, xmlnsmap, rootxmlns):
-    nsmap = {}
-    for xmlns in xmlnsset:
-        if xmlns == rootxmlns:
-            nsmap[None] = xmlns
-        elif xmlns in xmlnsmap:
-            nsmap[xmlnsmap[xmlns]] = xmlns
-    return nsmap
 
 
 NILTAG = _gettag('nil', 'http://www.w3.org/2001/XMLSchema-instance')
@@ -68,23 +59,100 @@ def _setnil(element):
     element.attrib[NILTAG] = 'true'
 
 
-__default_xmlnsmap = {
-    'http://www.w3.org/XML/1998/namespace': 'xml',
-    'http://www.w3.org/1999/xhtml': 'html',
-    'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
-    'http://schemas.xmlsoap.org/wsdl/': 'wsdl',
-    'http://www.w3.org/2001/XMLSchema': 'xs',
-    'http://www.w3.org/2001/XMLSchema-instance': 'xsi',
-    'http://purl.org/dc/elements/1.1/': 'dc',
-}
+class XmlnsMap(object):
+    def __init__(self, **map):
+        self.__xmlnskeydict = {}
+        self.__prefixkeydict = {}
+        self.update(**map)
 
-_xmlnsmap = __default_xmlnsmap.copy()
+    def __setitem__(self, key, value):
+        if not isinstance(value, str_types):
+            raise ValueError()
+        if not isinstance(key, str_types):
+            raise ValueError()
+        if key in self.__prefixkeydict:
+            xmlns = self.__prefixkeydict[key]
+            del self.__prefixkeydict[key]
+            del self.__xmlnskeydict[xmlns]
+        if value in self.__xmlnskeydict:
+            prefix = self.__xmlnskeydict[value]
+            del self.__prefixkeydict[prefix]
+            del self.__xmlnskeydict[value]
+        self.__prefixkeydict[key] = value
+        self.__xmlnskeydict[value] = key
+
+    def update(self, **map):
+        for prefix, xmlns in iteritems(map):
+            self[prefix] = xmlns
+
+    def hasxmlns(self, xmlns):
+        return xmlns in self.__xmlnskeydict
+
+    def hasprefix(self, prefix):
+        return prefix in self.__prefixkeydict
+
+    def getprefix(self, xmlns):
+        return self.__xmlnskeydict[xmlns]
+
+    def getxmlns(self, prefix):
+        return self.__prefixkeydict[prefix]
+
+    def delxmlns(self, xmlns):
+        if xmlns not in self.__xmlnskeydict:
+            raise KeyError()
+        prefix = self.__xmlnskeydict[xmlns]
+        del self.__prefixkeydict[prefix]
+        del self.__xmlnskeydict[xmlns]
+
+    def delprefix(self, prefix):
+        if prefix not in self.__prefixkeydict:
+            raise KeyError()
+        xmlns = self.__prefixkeydict[prefix]
+        del self.__prefixkeydict[prefix]
+        del self.__xmlnskeydict[xmlns]
+
+    def __delitem__(self, key):
+        self.delprefix(key)
+
+    def __repr__(self):
+        return 'XmlnsMap({0})'.format(dict.__repr__(self.__prefixkeydict))
 
 
-def register_xmlnsmap(xmlnsmap):
-    _xmlnsmap.clear()
-    _xmlnsmap.update(__default_xmlnsmap)
-    _xmlnsmap.update(xmlnsmap)
+xmlnsmap = XmlnsMap(
+    xml='http://www.w3.org/XML/1998/namespace',
+    html='http://www.w3.org/1999/xhtml',
+    rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    wsdl='http://schemas.xmlsoap.org/wsdl/',
+    xs='http://www.w3.org/2001/XMLSchema',
+    xsi='http://www.w3.org/2001/XMLSchema-instance',
+    dc='http://purl.org/dc/elements/1.1/'
+)
+
+
+def register_xmlnsmap(**map):
+    xmlnsmap.update(**map)
+
+
+def unregister_xmlns(xmlns, *args):
+    xmlnsmap.delxmlns(xmlns)
+    for xmlns in args:
+        xmlnsmap.delxmlns(xmlns)
+
+
+def unregister_prefix(prefix, *args):
+    xmlnsmap.delprefix(prefix)
+    for prefix in args:
+        xmlnsmap.delprefix(prefix)
+
+
+def _getnsmap(xmlnsset, rootxmlns):
+    nsmap = {}
+    for xmlns in xmlnsset:
+        if xmlns == rootxmlns:
+            nsmap[None] = xmlns
+        elif xmlnsmap.hasxmlns(xmlns):
+            nsmap[xmlnsmap.getprefix(xmlns)] = xmlns
+    return nsmap
 
 
 def _build_element(model_class, data_type, data, root, xmlns):
@@ -141,8 +209,7 @@ def _build_element(model_class, data_type, data, root, xmlns):
 def dump_xml_bytes(model_class, data_type, data, **options):
     xmlns = model_class.__xmlns__
     tag = _gettag(model_class.__tag__, xmlns)
-    nsmap = _getnsmap((model_class.__model__ if model_class._islist else model_class)
-                           ._getxmlnsset(), _xmlnsmap, xmlns)
+    nsmap = _getnsmap((model_class.__model__ if model_class._islist else model_class)._getxmlnsset(), xmlns)
     root = etree.Element(tag, nsmap=nsmap)
     if model_class._islist:
         elem_xmlns = model_class.__model__.__xmlns__

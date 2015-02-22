@@ -7,6 +7,7 @@ from .. import converters
 from .._xml import _getxmlns
 from .._compat import str_types, iteritems
 
+import sys
 
 class FieldBase(object):
     _dump_converters = None
@@ -135,13 +136,15 @@ class DecimalFieldMixin(FieldBase): pass
 
 
 class DatetimeFieldMixin(FieldBase):
+    __flexible_required = sys.version_info[:1] < (3, 2)
+
     def __init__(self, *args, **kwargs):
         super(DatetimeFieldMixin, self).__init__(*args, **kwargs)
         tz = kwargs.get('timezone')
         self.options = {
             'format': kwargs.get('format') or '%Y-%m-%dT%H:%M:%S%z',
             'timezone': pytz.timezone(tz) if isinstance(tz, str_types) else tz,
-            'flexible': kwargs.get('flexible', False),
+            'flexible': kwargs.get('flexible', self.__flexible_required),
         }
 
 

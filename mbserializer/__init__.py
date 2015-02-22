@@ -3,7 +3,7 @@ __author__ = 'Junki Ishida'
 from .declarations import NotExist, Entity
 from .models import Model, ListModel
 from .serializer import Serializer
-from ._xml import register_xmlnsmap
+from ._xml import xmlnsmap, register_xmlnsmap, unregister_xmlns, unregister_prefix
 
 
 def __loaded():

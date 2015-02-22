@@ -84,13 +84,12 @@ class ConvertTestCase(unittest.TestCase):
         self.parent = parent
         self.nested_parent = nested_parent
 
-        xmlnsmap = {
-            models.Child.__xmlns__: 'c',
-            models.NoElementChild.__xmlns__: 'nec',
-            models.Parent.__xmlns__: 'p',
-            models.NestedParent.__xmlns__: 'np',
-        }
-        register_xmlnsmap(xmlnsmap)
+        register_xmlnsmap(
+            c=models.Child.__xmlns__,
+            nec=models.NoElementChild.__xmlns__,
+            p=models.Parent.__xmlns__,
+            np=models.NestedParent.__xmlns__,
+        )
 
     def test_001_parent_xml(self):
         serializer = Serializer(models.Parent)
