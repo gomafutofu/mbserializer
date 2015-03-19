@@ -15,9 +15,9 @@ class FieldBase(object):
     index = 0
     options = None
 
-    def __init__(self, key=None, ignorable=False, **options):
+    def __init__(self, key=None, required=True, **options):
         self.key = key
-        self._ignorable = ignorable
+        self._required = required
         self._isattr = False
         self._nullable = False
         self._istext = False
@@ -68,41 +68,41 @@ class FieldBase(object):
 
 class TextField(FieldBase):
     def __init__(self, key=None, **options):
-        super(TextField, self).__init__(key=key, ignorable=False, **options)
+        super(TextField, self).__init__(key=key, required=True, **options)
         self._istext = True
 
 
 class MemberFieldBase(FieldBase):
-    def __init__(self, key=None, xmlns=None, ignorable=False, **options):
-        super(MemberFieldBase, self).__init__(key, ignorable, **options)
+    def __init__(self, key=None, xmlns=None, required=True, **options):
+        super(MemberFieldBase, self).__init__(key, required, **options)
         self.xmlns = xmlns
         self._ismember = True
 
 
 class AttributeField(MemberFieldBase):
-    def __init__(self, key=None, xmlns=None, ignorable=False, **options):
-        super(AttributeField, self).__init__(key, xmlns, ignorable, **options)
+    def __init__(self, key=None, xmlns=None, required=True, **options):
+        super(AttributeField, self).__init__(key, xmlns, required, **options)
         self._isattr = True
 
 
 class ElementField(MemberFieldBase):
-    def __init__(self, key=None, xmlns=None, ignorable=False, nullable=False, **options):
-        super(ElementField, self).__init__(key, xmlns, ignorable, **options)
+    def __init__(self, key=None, xmlns=None, required=True, nullable=False, **options):
+        super(ElementField, self).__init__(key, xmlns, required, **options)
         self._nullable = nullable
 
 
 class DelegateElement(ElementField):
-    def __init__(self, model_class, xmlns=None, ignorable=False, nullable=False, **options):
+    def __init__(self, model_class, xmlns=None, required=True, nullable=False, **options):
         super(DelegateElement, self).__init__(model_class.__tag__, _getxmlns(xmlns, model_class.__xmlns__),
-                                              ignorable, nullable, **options)
+                                              required, nullable, **options)
         self.model_class = model_class
         self._isdelegate = True
 
 
 class ListField(ElementField):
-    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, ignorable=False, nullable=False,
+    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, required=True, nullable=False,
                  nested=False, **options):
-        super(ListField, self).__init__(key, elem_xmlns, ignorable, nullable, **options)
+        super(ListField, self).__init__(key, elem_xmlns, required, nullable, **options)
         self.tag = tag
         if not self.tag:
             raise ValueError()
@@ -113,9 +113,9 @@ class ListField(ElementField):
 
 class DelegateList(ListField):
     def __init__(self, model_class, key=None, xmlns=None, elem_xmlns=None,
-                 ignorable=False, nullable=False, nested=False, **options):
+                 required=True, nullable=False, nested=False, **options):
         super(DelegateList, self).__init__(model_class.__tag__, key, _getxmlns(xmlns, model_class.__xmlns__),
-                                           elem_xmlns, ignorable, nullable, nested, **options)
+                                           elem_xmlns, required, nullable, nested, **options)
         self.model_class = model_class
         self._islistdelegate = True
 
@@ -285,13 +285,13 @@ class BooleanText(TextField, BooleanFieldMixin):
 
 
 class DatetimeText(TextField, DatetimeFieldMixin):
-    def __init__(self, key=None, ignorable=False, timezone=None, format=None, **options):
-        super(DatetimeText, self).__init__(key, ignorable, timezone=timezone, format=format, **options)
+    def __init__(self, key=None, required=True, timezone=None, format=None, **options):
+        super(DatetimeText, self).__init__(key, required, timezone=timezone, format=format, **options)
 
 
 class DateText(TextField, DateFieldMixin):
-    def __init__(self, key=None, ignorable=False, format=None, **options):
-        super(DateText, self).__init__(key, ignorable, format=format, **options)
+    def __init__(self, key=None, required=True, format=None, **options):
+        super(DateText, self).__init__(key, required, format=format, **options)
 
 
 class EnumText(TextField, EnumFieldMixin):
@@ -315,18 +315,18 @@ class BooleanAttribute(AttributeField, BooleanFieldMixin): pass
 
 
 class DatetimeAttribute(AttributeField, DatetimeFieldMixin):
-    def __init__(self, key=None, xmlns=None, ignorable=False, timezone=None, format=None, **options):
-        super(DatetimeAttribute, self).__init__(key, xmlns, ignorable, timezone=timezone, format=format, **options)
+    def __init__(self, key=None, xmlns=None, required=True, timezone=None, format=None, **options):
+        super(DatetimeAttribute, self).__init__(key, xmlns, required, timezone=timezone, format=format, **options)
 
 
 class DateAttribute(AttributeField, DateFieldMixin):
-    def __init__(self, key=None, xmlns=None, ignorable=False, format=None, **options):
-        super(DateAttribute, self).__init__(key, xmlns, ignorable, format=format, **options)
+    def __init__(self, key=None, xmlns=None, required=True, format=None, **options):
+        super(DateAttribute, self).__init__(key, xmlns, required, format=format, **options)
 
 
 class EnumAttribute(AttributeField, EnumFieldMixin):
-    def __init__(self, values, key=None, xmlns=None, ignorable=False, **options):
-        super(EnumAttribute, self).__init__(key, xmlns, ignorable, values=values, **options)
+    def __init__(self, values, key=None, xmlns=None, required=True, **options):
+        super(EnumAttribute, self).__init__(key, xmlns, required, values=values, **options)
 
 
 class StringElement(ElementField, StringFieldMixin): pass
@@ -345,20 +345,20 @@ class BooleanElement(ElementField, BooleanFieldMixin): pass
 
 
 class DatetimeElement(ElementField, DatetimeFieldMixin):
-    def __init__(self, key=None, xmlns=None, ignorable=False, nullable=False,
+    def __init__(self, key=None, xmlns=None, required=True, nullable=False,
                  timezone=None, format=None, **options):
-        super(DatetimeElement, self).__init__(key, xmlns, ignorable, nullable, timezone=timezone, format=format,
+        super(DatetimeElement, self).__init__(key, xmlns, required, nullable, timezone=timezone, format=format,
                                               **options)
 
 
 class DateElement(ElementField, DateFieldMixin):
-    def __init__(self, key=None, xmlns=None, ignorable=False, nullable=False, format=None, **options):
-        super(DateElement, self).__init__(key, xmlns, ignorable, nullable, format=format, **options)
+    def __init__(self, key=None, xmlns=None, required=True, nullable=False, format=None, **options):
+        super(DateElement, self).__init__(key, xmlns, required, nullable, format=format, **options)
 
 
 class EnumElement(ElementField, EnumFieldMixin):
-    def __init__(self, values, key=None, xmlns=None, ignorable=False, nullable=False, **options):
-        super(EnumElement, self).__init__(key, xmlns, ignorable, nullable, values=values, **options)
+    def __init__(self, values, key=None, xmlns=None, required=True, nullable=False, **options):
+        super(EnumElement, self).__init__(key, xmlns, required, nullable, values=values, **options)
 
 
 class StringList(ListField, StringFieldMixin): pass
@@ -377,21 +377,21 @@ class BooleanList(ListField, BooleanFieldMixin): pass
 
 
 class DatetimeList(ListField, DatetimeFieldMixin):
-    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, ignorable=False, nullable=False, nested=False,
+    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, required=True, nullable=False, nested=False,
                  timezone=None, format=None, **options):
-        super(DatetimeList, self).__init__(tag, key, xmlns, elem_xmlns, ignorable, nullable, nested,
+        super(DatetimeList, self).__init__(tag, key, xmlns, elem_xmlns, required, nullable, nested,
                                            timezone=timezone, format=format, **options)
 
 
 class DateList(ListField, DateFieldMixin):
-    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, ignorable=False, nullable=False, nested=False,
+    def __init__(self, tag, key=None, xmlns=None, elem_xmlns=None, required=True, nullable=False, nested=False,
                  format=None, **options):
-        super(DateList, self).__init__(tag, key, xmlns, elem_xmlns, ignorable, nullable, nested, format=format,
+        super(DateList, self).__init__(tag, key, xmlns, elem_xmlns, required, nullable, nested, format=format,
                                        **options)
 
 
 class EnumList(ListField, EnumFieldMixin):
-    def __init__(self, tag, values, key=None, xmlns=None, elem_xmlns=None, ignorable=False,
+    def __init__(self, tag, values, key=None, xmlns=None, elem_xmlns=None, required=True,
                  nullable=False, nested=False, **options):
-        super(EnumList, self).__init__(tag, key, xmlns, elem_xmlns, ignorable, nullable, nested, values=values,
+        super(EnumList, self).__init__(tag, key, xmlns, elem_xmlns, required, nullable, nested, values=values,
                                        **options)

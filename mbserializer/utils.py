@@ -29,11 +29,11 @@ def _to_dict(model_class, data_type, data, ordered):
     result = OrderedDict() if ordered else {}
     for k, f in iteritems(model_class._fields):
         if not haskey(data, k, isdict):
-            if f._ignorable:
+            if not f._required:
                 continue
             raise FormatError('"{0}" is not found.'.format(k))
         src = getvalue(data, k, isdict)
-        if f._ignorable and src is NotExist:
+        if not f._required and src is NotExist:
             continue
         if f._nullable and src is None:
             value = None
@@ -51,13 +51,14 @@ def _to_dict(model_class, data_type, data, ordered):
     return result
 
 
-def _parse_dict(model_class, data_type, data):
+def _parse_dict(model_class, data_type, data, forcekey):
     entity = Entity()
     for k, f in model_class._fields.items():
         key = f.get_key(k)
         if not key in data:
-            if f._ignorable:
-                entity[k] = NotExist
+            if not f._required:
+                if forcekey:
+                    entity[k] = NotExist
                 continue
             raise FormatError()
         src = data[key]

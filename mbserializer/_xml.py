@@ -159,11 +159,11 @@ def _build_element(model_class, data_type, data, root, xmlns):
     isdict = isinstance(data, dict)
     for k, f in iteritems(model_class._fields):
         if not utils.haskey(data, k, isdict):
-            if f._ignorable:
+            if not f._required:
                 continue
             raise FormatError()
         src = utils.getvalue(data, k, isdict)
-        if f._ignorable and src is NotExist:
+        if not f._required and src is NotExist:
             continue
         if f._istext:
             root.text = f._dump(src, data_type)
@@ -233,7 +233,7 @@ def dump_xml_str(model_class, data_type, data, **options):
     return result
 
 
-def _parse_xml(model_class, data_type, data, xmlns):
+def _parse_xml(model_class, data_type, data, xmlns, forcekey):
     entity = Entity()
     if isinstance(data, str_types):
         data = ElementTree.fromstring(data)
@@ -269,8 +269,9 @@ def _parse_xml(model_class, data_type, data, xmlns):
                             element = e
                             break
                     if element is None:
-                        if f._ignorable:
-                            entity[k] = NotExist
+                        if not f._required:
+                            if forcekey:
+                                entity[k] = NotExist
                             continue
                         raise FormatError()
                     if f._nullable and _isnil(element):
@@ -311,6 +312,7 @@ def load_xml(model_class, data_type, data, **options):
     except XMLParseError as e:
         raise_with_inner(ParseError, e)
     xmlns = model_class.__xmlns__
+    forcekey = options.get('forcekey', False)
     if model_class._islist:
         tag = _gettag(model_class.__tag__, xmlns)
         elem_xmlns = model_class.__model__.__xmlns__
@@ -318,8 +320,8 @@ def load_xml(model_class, data_type, data, **options):
             raise FormatError()
         result = []
         for e in data:
-            entity = _parse_xml(model_class, data_type, e, elem_xmlns)
+            entity = _parse_xml(model_class, data_type, e, elem_xmlns, forcekey)
             result.append(entity)
         return result
     else:
-        return _parse_xml(model_class, data_type, data, xmlns)
+        return _parse_xml(model_class, data_type, data, xmlns, forcekey)

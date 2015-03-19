@@ -36,11 +36,12 @@ def load_json(model_class, data_type, data, **options):
         data = json.loads(data, **options)
     except ValueError as e:
         raise_with_inner(ParseError, e)
+    forcekey = options.get('forcekey')
     if model_class._islist:
         result = []
         for d in data:
-            entity = _parse_dict(model_class, data_type, d)
+            entity = _parse_dict(model_class, data_type, d, forcekey)
             result.append(entity)
         return result
     else:
-        return _parse_dict(model_class, data_type, data)
+        return _parse_dict(model_class, data_type, data, forcekey)

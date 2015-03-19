@@ -61,6 +61,7 @@ def load_yaml(model_class, data_type, data, **options):
         encoding = options.get('encoding', 'utf-8')
         data = data.decode(encoding)
     loader = options.get('Loader', Loader)
+    forcekey = options.get('forcekey', False)
     try:
         data = yaml.load(data, loader)
     except ParserError as e:
@@ -68,8 +69,8 @@ def load_yaml(model_class, data_type, data, **options):
     if model_class._islist:
         result = []
         for d in data:
-            entity = _parse_dict(model_class, data_type, d)
+            entity = _parse_dict(model_class, data_type, d, forcekey)
             result.append(entity)
         return result
     else:
-        return _parse_dict(model_class, data_type, data)
+        return _parse_dict(model_class, data_type, data, forcekey)
