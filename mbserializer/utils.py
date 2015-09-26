@@ -69,11 +69,11 @@ def _parse_dict(model_class, data_type, data, forcekey):
                 value = []
                 if src is not None:
                     for v in src:
-                        item = _parse_dict(f.model_class, data_type, v) \
+                        item = _parse_dict(f.model_class, data_type, v, forcekey) \
                             if f._islistdelegate else f._parse(v, data_type)
                         value.append(item)
             else:
-                value = _parse_dict(f.model_class, data_type, src) \
+                value = _parse_dict(f.model_class, data_type, src, forcekey) \
                     if f._isdelegate else f._parse(src, data_type)
         entity[k] = value
     return entity

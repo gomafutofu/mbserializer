@@ -257,7 +257,7 @@ def _parse_xml(model_class, data_type, data, xmlns, forcekey):
                     value = []
                     for e in data:
                         if e.tag == tag:
-                            v = _parse_xml(f.model_class, data_type, e, fxmlns) \
+                            v = _parse_xml(f.model_class, data_type, e, fxmlns, forcekey) \
                                 if f._islistdelegate else f._parse(e.text, data_type)
                             value.append(v)
                 else:
@@ -283,13 +283,13 @@ def _parse_xml(model_class, data_type, data, xmlns, forcekey):
                             tag = _gettag(f.tag, exmlns)
                             for e in element:
                                 if e.tag == tag:
-                                    v = _parse_xml(f.model_class, data_type, e, exmlns) \
+                                    v = _parse_xml(f.model_class, data_type, e, exmlns, forcekey) \
                                         if f._islistdelegate else f._parse(e.text, data_type)
                                     value.append(v)
                                 else:
                                     raise FormatError()
                         else:
-                            value = _parse_xml(f.model_class, data_type, element, fxmlns) \
+                            value = _parse_xml(f.model_class, data_type, element, fxmlns, forcekey) \
                                 if f._isdelegate else f._parse(element.text, data_type)
         entity[k] = value
     return entity
